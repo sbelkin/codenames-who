@@ -3,6 +3,12 @@ package io.sbelkin.codenames.engine;
 import io.sbelkin.codenames.exception.InvalidBoardGameInput;
 import io.sbelkin.codenames.model.CardType;
 import io.sbelkin.codenames.model.Game;
+import io.sbelkin.codenames.model.WordCardType;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -25,8 +31,8 @@ public class GenerateGameBoard {
 
     private List<String> words;
 
-    public void init() {
-        words = new ArrayList<String>();
+    public void init() throws IOException {
+        words = getWords(fileWords);
         System.out.println("Ready!");
     }
 
@@ -42,12 +48,19 @@ public class GenerateGameBoard {
             // cannot support.
             throw new InvalidBoardGameInput(String.format("Board row: %d column: %d doesn't mathc card count: %d", row, column, cardCount));
         }
-        return new Game.Builder()
-                .withId(1)
-//                TODO: fix how the round is generated.
-//                .withWords(getListWords(boardSize))
-//                .withLayout(generateLayoutDefault())
-                .build();
+        Game.Builder game = new Game.Builder()
+                .withId(1);
+
+        List<String> wordList = getListWords(cardCount);
+        CardType[][] cardTypes = generateLayoutDefault();
+        int count = 0;
+        for (int cardRow = 0; cardRow < cardTypes.length; cardRow++) {
+            for (int cardColumn = 0; cardColumn < cardTypes[cardRow].length; cardColumn++) {
+                game.addWordCardType(new WordCardType(wordList.get(count),cardTypes[cardRow][cardColumn]), cardRow,cardColumn);
+                count++;
+            }
+        }
+        return  game.build();
     }
 
 
@@ -71,9 +84,36 @@ public class GenerateGameBoard {
         };
         return array;
     }
+
     public CardType[][] generateLayout(int row, int column, int bystanders, int blueSpy, int redSpy, int assassin) {
-        CardType[][] array = {};
+        CardType[][] array = new CardType[row][column];
+        int count = row*column;
+        while (0 < count) {
+            CardType cardType = CardType.random();
+
+            count--;
+        }
         return array;
+    }
+
+    private CardType getCardTypeWithinRequirements(int bystanders, int blueSpy, int redSpy, int assassin){
+        CardType cardType = CardType.random();
+        // decide a better way to generate random with in the range?
+        if (bystanders == 0 && cardType.equals(Bystander)){
+            return getCardTypeWithinRequirements(bystanders,blueSpy,redSpy,assassin);
+        }
+        return cardType;
+    }
+
+    private List<String> getWords(String file) throws IOException {
+        List<String> list = new ArrayList<String>();
+        BufferedReader reader = new BufferedReader(new FileReader(file));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            list.add(line);
+        }
+        reader.close();
+        return list;
     }
 }
 
